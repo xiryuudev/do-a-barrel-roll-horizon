@@ -204,20 +204,31 @@ pub fn frame(game: &mut crate::game::Game<'_>, _elapsed: std::time::Duration) {
 
         (s.roll, s.pitch, s.yaw)
     });
-    // Offset diterapkan ke kamera via native_camera hook (dilanjutkan oleh
-    // mixin camera.rs yang di-inject ke Game::native_camera, setelah native_frame).
-    let _ = (roll, pitch, yaw);
+    // Terapkan roll/pitch/yaw offset ke kamera melalui native hook.
+    apply_camera(game);
 }
 
-/// Terapkan roll/pitch/yaw terkini ke kamera (dipanggil dari native_camera hook).
+/// Terapkan roll/pitch/yaw offset ke kamera setiap frame (dipanggil dari
+/// Game::native_camera lewat mixin camera.rs).
 pub fn apply_camera(game: &mut crate::game::Game<'_>) {
-    let (roll, pitch, yaw) = STATE.with_borrow(|s| (s.roll, s.pitch, s.yaw));
-    if roll == 0.0 && pitch == 0.0 && yaw == 0.0 {
-        return;
-    }
-    game.native_camera_apply_roll(roll);
-    game.native_add_yaw(yaw);
-    game.native_add_pitch(pitch);
+    STATE.with_borrow(|s| {
+        if !s.enabled {
+            return;
+        }
+        let roll = s.roll;
+        let pitch = s.pitch;
+        let yaw = s.yaw;
+        if roll != 0.0 {
+            game.native_camera_apply_roll(roll);
+        }
+        if pitch != 0.0 {
+            game.native_add_pitch(pitch);
+        }
+        if yaw != 0.0 {
+            game.native_add_yaw(yaw);
+        }
+    });
+}
 }
 
 #[cfg(test)]
