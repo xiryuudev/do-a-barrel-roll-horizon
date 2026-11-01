@@ -75,3 +75,12 @@ bindings = [
   { name = "mod_id", ty = "&str", value = "mod_id" },
   { name = "button", ty = "usize", value = "button" },
 ]
+
+[[injection]]
+id = "camera"
+kind = "HEAD"
+target = "horizon_client::game::native_hooks::Game<'_>::native_camera"
+helper = "camera.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]

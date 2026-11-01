@@ -204,10 +204,20 @@ pub fn frame(game: &mut crate::game::Game<'_>, _elapsed: std::time::Duration) {
 
         (s.roll, s.pitch, s.yaw)
     });
-    // Hook point yang diperlukan untuk menerapkan roll/pitch/yaw ke kamera
-    // belum tersedia di Horizon. Setelah tersedia, gunakan `game` di sini untuk
-    // memodifikasi view matrix atau sudut kamera.
+    // Offset diterapkan ke kamera via native_camera hook (dilanjutkan oleh
+    // mixin camera.rs yang di-inject ke Game::native_camera, setelah native_frame).
     let _ = (roll, pitch, yaw);
+}
+
+/// Terapkan roll/pitch/yaw terkini ke kamera (dipanggil dari native_camera hook).
+pub fn apply_camera(game: &mut crate::game::Game<'_>) {
+    let (roll, pitch, yaw) = STATE.with_borrow(|s| (s.roll, s.pitch, s.yaw));
+    if roll == 0.0 && pitch == 0.0 && yaw == 0.0 {
+        return;
+    }
+    game.native_camera_apply_roll(roll);
+    game.native_add_yaw(yaw);
+    game.native_add_pitch(pitch);
 }
 
 #[cfg(test)]
