@@ -228,11 +228,11 @@ pub fn apply_camera(game: &mut crate::game::Game<'_>) {
 
 /// Akumulasi delta mouse ke State roll/pitch (dipanggil dari native_mouse_delta).
 pub fn mouse_delta(game: &mut crate::game::Game<'_>, dx: f32, dy: f32) {
+    let settings = settings(|key| game.native_setting(ID, key));
     STATE.with_borrow_mut(|s| {
         if !s.enabled {
             return;
         }
-        let settings = settings(|key| game.native_setting(ID, key));
         s.roll += dx * settings.roll_sensitivity;
         s.pitch += dy * settings.pitch_sensitivity;
     });
