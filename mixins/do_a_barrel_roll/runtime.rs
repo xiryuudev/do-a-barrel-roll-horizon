@@ -204,31 +204,38 @@ pub fn frame(game: &mut crate::game::Game<'_>, _elapsed: std::time::Duration) {
 
         (s.roll, s.pitch, s.yaw)
     });
-    // Terapkan roll/pitch/yaw offset ke kamera melalui native hook.
-    apply_camera(game);
+    // Hook point yang diperlukan untuk menerapkan roll/pitch/yaw ke kamera
+    // belum tersedia di Horizon. Setelah tersedia, gunakan `game` di sini untuk
+    // memodifikasi view matrix atau sudut kamera.
+    let _ = (roll, pitch, yaw);
 }
 
-/// Terapkan roll/pitch/yaw offset ke kamera setiap frame (dipanggil dari
-/// Game::native_camera lewat mixin camera.rs).
+/// Terapkan accumulated roll/pitch/yaw ke kamera setiap frame saat mod aktif.
 pub fn apply_camera(game: &mut crate::game::Game<'_>) {
-    STATE.with_borrow(|s| {
+    let settings = settings(|key| game.native_setting(ID, key));
+    STATE.with_borrow_mut(|s| {
         if !s.enabled {
             return;
         }
-        let roll = s.roll;
-        let pitch = s.pitch;
-        let yaw = s.yaw;
-        if roll != 0.0 {
-            game.native_camera_apply_roll(roll);
-        }
-        if pitch != 0.0 {
-            game.native_add_pitch(pitch);
-        }
-        if yaw != 0.0 {
-            game.native_add_yaw(yaw);
-        }
+        game.native_add_yaw(s.yaw * settings.yaw_sensitivity);
+        game.native_add_pitch(s.pitch * settings.pitch_sensitivity);
+        game.native_camera_apply_roll(s.roll * settings.roll_sensitivity);
+        s.roll = 0.0;
+        s.pitch = 0.0;
+        s.yaw = 0.0;
     });
 }
+
+/// Akumulasi delta mouse ke State roll/pitch (dipanggil dari native_mouse_delta).
+pub fn mouse_delta(game: &mut crate::game::Game<'_>, dx: f32, dy: f32) {
+    STATE.with_borrow_mut(|s| {
+        if !s.enabled {
+            return;
+        }
+        let settings = settings(|key| game.native_setting(ID, key));
+        s.roll += dx * settings.roll_sensitivity;
+        s.pitch += dy * settings.pitch_sensitivity;
+    });
 }
 
 #[cfg(test)]
